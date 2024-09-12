@@ -17,13 +17,10 @@
     <div>
         <img src="https://img.shields.io/badge/react-61DAFB?style=flat-square&logo=react&logoColor=white">
     </div>
-    
-
     <!-- Version Control -->
     <p><strong>Version Control</strong></p>
     <div>
-        <img src="https://img.shields.io/badge/googlecolab-F9AB00?style=flat-square&logo=googlecolab&logoColor=white">
-        <img src="https://img.shields.io/badge/notion-000000?style=flat-square&logo=notion&logoColor=white">
+
     </div>
     
 </div>
