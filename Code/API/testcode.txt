@@ -1,0 +1,89 @@
+# from googleapiclient.discovery import build
+# from sklearn.feature_extraction.text import TfidfVectorizer
+# from sklearn.metrics.pairwise import linear_kernel
+# import numpy as np
+
+# # 1. YouTube Data API로 데이터 수집
+
+# api_key = "AIzaSyBcSKTR5Ls4U4cVp5ji_ZEjxXTL-_DBt2E"
+# youtube = build("youtube", "v3", developerKey=api_key)
+
+
+# def fetch_youtube_videos(query, max_results=50):
+#     request = youtube.search().list(q=query, part="snippet", maxResults=max_results)
+#     response = request.execute()
+
+#     videos = []
+#     for item in response["items"]:
+#         if "videoId" in item["id"]:
+#             video = {
+#                 "video_id": item["id"]["videoId"],
+#                 "title": item["snippet"]["title"],
+#                 "description": item["snippet"]["description"],
+#                 "channel": item["snippet"]["channelTitle"],
+#             }
+#             videos.append(video)
+#     return videos
+
+
+# # 2. 데이터 전처리 및 TF-IDF 기반 콘텐츠 필터링 구현
+
+
+# def create_tfidf_matrix(videos):
+#     # 비디오 설명을 기반으로 TF-IDF 벡터화
+#     tfidf = TfidfVectorizer(stop_words="english")
+#     tfidf_matrix = tfidf.fit_transform([video["description"] for video in videos])
+#     return tfidf_matrix
+
+
+# def recommend_videos(idx, tfidf_matrix, videos, top_n=5):
+#     # 코사인 유사도를 기반으로 추천
+#     cosine_sim = linear_kernel(tfidf_matrix, tfidf_matrix)
+#     sim_scores = list(enumerate(cosine_sim[idx]))
+#     sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+#     sim_scores = sim_scores[1 : top_n + 1]  # 자신을 제외하고 상위 n개의 비디오 추천
+#     return [videos[i[0]] for i in sim_scores]
+
+
+# # 3. 추천 시스템 실행
+
+# query = "music"  # 음악 관련 비디오 검색
+# videos = fetch_youtube_videos(query)
+
+# if videos:
+#     tfidf_matrix = create_tfidf_matrix(videos)
+#     recommendations = recommend_videos(
+#         0, tfidf_matrix, videos
+#     )  # 첫 번째 비디오와 유사한 비디오 추천
+#     print("Recommendations for video:", videos[0]["title"])
+#     for rec in recommendations:
+#         print(f"Title: {rec['title']}, Channel: {rec['channel']}")
+# else:
+#     print("No videos found.")
+
+# # 4. 테스트 코드 작성
+
+
+# def test_youtube_data_fetching():
+#     # API 요청이 올바르게 작동하는지 테스트
+#     assert len(videos) > 0, "No videos fetched from YouTube API"
+#     print("YouTube data fetching test passed.")
+
+
+# def test_tfidf_model():
+#     # TF-IDF가 비디오 설명에서 데이터를 올바르게 벡터화했는지 테스트
+#     assert tfidf_matrix.shape[0] == len(videos), "TF-IDF matrix size mismatch"
+#     print("TF-IDF model test passed.")
+
+
+# def test_recommendations():
+#     # 추천 시스템이 유사한 비디오를 올바르게 반환하는지 테스트
+#     recommendations = recommend_videos(0, tfidf_matrix, videos)
+#     assert len(recommendations) == 5, "Expected 5 recommendations"
+#     print("Recommendations test passed.")
+
+
+# # 테스트 실행
+# test_youtube_data_fetching()
+# test_tfidf_model()
+# test_recommendations()
