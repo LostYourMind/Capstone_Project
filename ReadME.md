@@ -1,10 +1,6 @@
 ### 주제
+
 ### 개인 맞춤형 스마트카 장치들
-
-
-
-
-
 
 <div style="display:flex; flex-direction:column; align-items:flex-start;">
     <!-- Backend -->

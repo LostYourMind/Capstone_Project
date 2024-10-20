@@ -82,6 +82,7 @@ def test_recommend_music():
     ), "Expected active music"
 
     print("All tests passed.")
+    return recommended_music
 
 
 # 테스트 실행

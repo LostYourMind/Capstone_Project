@@ -5,7 +5,7 @@
 
 # # 1. YouTube Data API로 데이터 수집
 
-# api_key = ""
+# api_key = "sadhaskld-asdkhasjkh-1231fhjksadhu3"
 # youtube = build("youtube", "v3", developerKey=api_key)
 
 
