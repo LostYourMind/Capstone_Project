@@ -40,13 +40,17 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup():
-
-    logger.info("데이터베이스 연결이 성공적으로 시작되었습니다.")
+    db_state = db_con.initialize_db_connection() 
+    if(db_state == None) : logger.info("failed to DB StartUp")
+    else : logger.info("데이터베이스 연결에 성공하였습니다.")
+    
 
 
 @app.on_event("shutdown")
 async def shutdown():
-    logger.info("데이터베이스 연결이 성공적으로 종료되었습니다.")
+    db_state = db_con.close_db_connection()
+    if(db_state == None) : logger.info("failed to DB Shutdown")
+    else : logger.info("데이터베이스 연결이 성공적으로 종료되었습니다.")
 
 
 @app.get("/")
@@ -54,15 +58,15 @@ async def something():
     return "API is Work"
 
 
-@app.get("/")
+@app.post("/")
 async def Insert_Infomation():
     return None
 
 
 # 날씨 정보 호출
-@app.post("/WeatherCall")
+@app.get("/WeatherCall")
 async def WeatherCall():
-
+    logger.info("Call Weather EndPoint")
     weather_Result, airCondition_Result = con.Weather_API_CALL()
-
-    return "asd"  # ECHO 용 함수
+    return weather_Result, airCondition_Result
+    # return "asd"  # ECHO 용 함수
