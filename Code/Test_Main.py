@@ -1,5 +1,5 @@
 ### Test_Main.py
-### 테스트 & 디버깅 용 코ㄷ
+### 테스트 & 디버깅 용 코드
 
 
 
@@ -20,3 +20,7 @@
 # print(f"temp_data = {temp}")
 # temp2 = con.Weather_API_CALL()
 # print(temp2)
+
+
+# uvicorn main:app --host 0.0.0.0 --port 8000
+# uvicorn main:app --reload

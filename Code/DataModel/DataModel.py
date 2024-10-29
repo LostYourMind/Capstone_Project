@@ -3,7 +3,8 @@ from typing import List, Dict, Optional
 
 
 # 심박수 데이터
-class Heart_Data(BaseModel):
-    text: str
-    sender: str
-    id_Value: int
+class HeartRateData(BaseModel):
+    heart_rate: int  # 심박수 데이터는 정수형
+
+class AirCondition_Data(BaseModel) :
+    airdata : str
