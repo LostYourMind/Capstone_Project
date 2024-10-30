@@ -1,24 +1,36 @@
 import uuid
+from datetime import datetime
+import random
+import string
 
 class CRUDOperations:
     def __init__(self, cursor):
         self.cursor = cursor
 
-    def create_user(self, name):
+    def generate_random_name(self, length=6):
+        """임의의 문자열을 생성하여 사용자 이름으로 사용"""
+        letters = string.ascii_uppercase
+        return ''.join(random.choice(letters) for i in range(length))
+
+    def create_user(self):
         """Create: 새 사용자 데이터를 삽입"""
         user_id = str(uuid.uuid4())  # UUID를 생성하여 사용자 ID로 사용
-        sql = "INSERT INTO users (user_id, name) VALUES (%s, %s)"
-        values = (user_id, name)
+        name = f"USER_{self.generate_random_name()}"  # 임의의 이름 생성 (USER_ + 6자리 무작위 문자열)
+        created_at = datetime.now()
+
+        sql = "INSERT INTO users (user_id, name, created_at) VALUES (%s, %s, %s)"
+        values = (user_id, name, created_at)
         self.cursor.execute(sql, values)
         return user_id  # 생성된 사용자 ID를 반환
 
     def create_user_data(self, user_id, aver_heart_rate, temp, humi, air_condition, led_value):
         """Create: 사용자 데이터를 삽입"""
+        created_at = datetime.now()
         sql = """
-        INSERT INTO user_data (user_id, aver_heart_rate, temp, humi, air_condition, led_value)
-        VALUES (%s, %s, %s, %s, %s, %s)
+        INSERT INTO user_data (user_id, aver_heart_rate, temp, humi, air_condition, led_value, created_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
-        values = (user_id, aver_heart_rate, temp, humi, air_condition, led_value)
+        values = (user_id, aver_heart_rate, temp, humi, air_condition, led_value, created_at)
         self.cursor.execute(sql, values)
 
     def read_users(self):
