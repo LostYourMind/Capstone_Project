@@ -24,3 +24,5 @@
 
 # uvicorn main:app --host 0.0.0.0 --port 8000
 # uvicorn main:app --reload
+
+#AIzaSyBcSKTR5Ls4U4cVp5ji_ZEjxXTL-_DBt2E

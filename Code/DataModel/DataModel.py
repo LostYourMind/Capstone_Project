@@ -1,11 +1,21 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator
 from typing import List, Dict, Optional
 from datetime import datetime
-
+import re
 
 # 심박수 데이터
 class HeartRateData(BaseModel):
-    heart_rate: str
+    Acetona: float
+    Alcohol: float
+    CO: float
+    CO2: float
+    NH4: float
+    Tolueno: float
+    deviceId: str
+    heartRate: int
+    humidity: int
+    temperature: int
+    
 
 class HeartRateResponse(BaseModel):
     heart_rate: int

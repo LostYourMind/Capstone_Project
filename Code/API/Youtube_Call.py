@@ -1,89 +1,58 @@
-### Youtube_Call.py
+import requests
+import time
 
+YOUTUBE_API_KEY = "AIzaSyBcSKTR5Ls4U4cVp5ji_ZEjxXTL-_DBt2E"
+BASE_YOUTUBE_URL = "https://www.youtube.com/watch?v="
 
-from Module.Heart_Rate import get_heart_rate, get_user_emotion
+# 감정 상태와 검색어 쿼리를 딕셔너리로 정의
+EMOTION_QUERIES = {
+    "C": "calm relaxing music",
+    "E": "exciting upbeat music",
+    "H": "happy music",
+    "S": "sad emotional music",
+    "F": "focus study music",
+    "R": "romantic love songs",
+    "M": "motivational workout music",
+    "T": "stress relief music",
+    "A": "adventure music",
+}
 
+class YouTubeMusicRecommender:
+    def __init__(self):
+        # 각 감정에 대한 마지막 호출 시간을 추적하는 딕셔너리
+        self.last_called = {emotion: 0 for emotion in EMOTION_QUERIES}
 
-# 감정 상태에 맞춰 음악을 추천하는 함수
-def recommend_music_based_on_emotion(emotion, music_data):
-    """
-    감정 상태에 맞춰 음악을 추천하는 함수.
-    - 차분한 음악: Classical, Jazz, Ballad 장르의 음악을 추천.
-    - 활동적인 음악: Pop, Rock, EDM 장르의 음악을 추천.
-    """
-    # 차분한 음악 리스트
-    calm_music = [
-        song for song in music_data if song["genre"] in ["Classical", "Jazz", "Ballad"]
-    ]
+    def get_youtube_video(self, query: str) -> str:
+        """YouTube API로 검색하여 첫 번째 동영상의 URL 반환."""
+        url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&q={query}&type=video&key={YOUTUBE_API_KEY}"
+        try:
+            response = requests.get(url)
+            response.raise_for_status()  # 요청에 실패하면 예외 발생
+            video_data = response.json()
 
-    # 활동적인 음악 리스트
-    active_music = [
-        song for song in music_data if song["genre"] in ["Pop", "Rock", "EDM"]
-    ]
+            # 첫 번째 동영상의 videoId를 가져와 URL 생성
+            if "items" in video_data and video_data["items"]:
+                video_id = video_data["items"][0]["id"]["videoId"]
+                return BASE_YOUTUBE_URL + video_id
+            else:
+                return "No video found"
+        except requests.RequestException as e:
+            return f"Error fetching video: {e}"
 
-    # 감정 상태에 따른 추천 로직
-    if emotion == "stressed":
-        return calm_music  # 스트레스를 받았을 때는 차분한 음악 추천
-    elif emotion == "calm":
-        return active_music  # 차분할 때는 활동적인 음악도 추천 가능
-    else:
-        return music_data  # 중립적인 상태에서는 모든 음악을 추천
+    def recommend_music(self, emotion: str) -> str:
+        """감정 상태에 맞는 추천 음악 URL 반환 (10초마다 호출 가능)."""
+        current_time = time.time()  # 현재 시간을 초 단위로 가져옴
+        last_time = self.last_called.get(emotion, 0)
+        
+        # 마지막 호출 이후 10초가 지나지 않았으면 호출 제한
+        if current_time - last_time < 10:
+            return f"Wait before requesting more music for emotion '{emotion}'."
 
+        # 10초가 지난 경우, 새로운 추천 URL 생성
+        query = EMOTION_QUERIES.get(emotion, "music")  # 기본 검색어는 "music"
+        video_url = self.get_youtube_video(query)
 
-# 음악 데이터 (예시)
-music_data = [
-    {"title": "Calm Classical Song", "genre": "Classical"},
-    {"title": "Energetic Pop Song", "genre": "Pop"},
-    {"title": "Soothing Jazz Song", "genre": "Jazz"},
-    {"title": "Upbeat Rock Song", "genre": "Rock"},
-]
+        # 마지막 호출 시간을 현재 시간으로 업데이트
+        self.last_called[emotion] = current_time
 
-# 심박수 데이터 수집 및 감정 상태 추론, 음악 추천 실행
-heart_rate = get_heart_rate()  # 심박수 데이터 수집
-emotion = get_user_emotion(heart_rate)  # 감정 상태 추론
-recommended_music = recommend_music_based_on_emotion(
-    emotion, music_data
-)  # 감정 상태에 맞는 음악 추천
-
-# 결과 출력
-print(f"User's heart rate: {heart_rate}")
-print(f"User's emotion: {emotion}")
-print("Recommended music:")
-for music in recommended_music:
-    print(f"Title: {music['title']}, Genre: {music['genre']}")
-
-
-# 테스트 코드
-def test_recommend_music():
-    """
-    감정 상태에 따른 음악 추천 시스템이 올바르게 동작하는지 테스트하는 함수.
-    """
-    music_data = [
-        {"title": "Calm Classical Song", "genre": "Classical"},
-        {"title": "Energetic Pop Song", "genre": "Pop"},
-        {"title": "Soothing Jazz Song", "genre": "Jazz"},
-        {"title": "Upbeat Rock Song", "genre": "Rock"},
-    ]
-
-    # 스트레스 상태 (심박수 110)일 때는 차분한 음악 추천
-    heart_rate = 110  # 예: 스트레스 상태
-    emotion = get_user_emotion(heart_rate)
-    recommended_music = recommend_music_based_on_emotion(emotion, music_data)
-    assert all(
-        song["genre"] in ["Classical", "Jazz", "Ballad"] for song in recommended_music
-    ), "Expected calm music"
-
-    # 차분한 상태 (심박수 55)일 때는 활동적인 음악 추천
-    heart_rate = 55  # 예: 차분한 상태
-    emotion = get_user_emotion(heart_rate)
-    recommended_music = recommend_music_based_on_emotion(emotion, music_data)
-    assert all(
-        song["genre"] in ["Pop", "Rock", "EDM"] for song in recommended_music
-    ), "Expected active music"
-
-    print("All tests passed.")
-    return recommended_music
-
-
-# 테스트 실행
-test_recommend_music()
+        return video_url

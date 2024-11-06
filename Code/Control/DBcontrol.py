@@ -1,18 +1,16 @@
 import logging
-import os
-import sys
-
-sys.path.append("../")  # Add parent directory
-current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(current_dir)
-
+from typing import Dict, Any
 from CRUD_FILE.db_connection import connect_to_db
-from CRUD_FILE.Service import UserService
+from CRUD_FILE.Service import UserService  # CRUD 기능을 포함한 서비스 클래스
 
 logger = logging.getLogger("DBControl")
 
 class dbControl:
     
+    def __init__(self, connection: Any):
+        self.connection = connection
+        self.crud = UserService(connection)  # 데이터베이스 작업을 위한 UserService 인스턴스 생성
+
     @staticmethod
     def initialize_db_connection():
         """데이터베이스 연결을 초기화하는 함수"""
@@ -20,6 +18,7 @@ class dbControl:
         if connection is None:
             logger.error("Failed to connect to the database.")
             return None
+        logger.info("Database connection established successfully.")
         return connection
 
     @staticmethod
@@ -27,39 +26,24 @@ class dbControl:
         """데이터베이스 연결을 종료하는 함수"""
         if connection:
             connection.close()
-            logger.info("Database connection closed.")
+            logger.info("Database connection closed successfully.")
+        else:
+            logger.warning("Attempted to close a non-existent connection.")
 
-    @staticmethod
-    def create_user_and_data(name, heart_rate, temp, humi, air_condition, led_value):
-        """사용자 및 관련 데이터 생성"""
-        connection = dbControl.initialize_db_connection()
-        if connection:
-            cursor = connection.cursor()
-            try:
-                service = UserService(cursor)
-                user_id = service.create_user_with_data(name, heart_rate, temp, humi, air_condition, led_value)
-                connection.commit()
-                logger.info(f"User {name} and related data created with ID {user_id}.")
-            except Exception as e:
-                connection.rollback()
-                logger.error(f"Error occurred while creating user and data: {e}")
-            finally:
-                cursor.close()
-                dbControl.close_db_connection(connection)
+    def save_data(self, data: Dict):
+        """특정 필드만 추출하여 데이터베이스에 저장"""
 
-    @staticmethod
-    def get_user_and_data(user_id):
-        """사용자 및 관련 데이터 조회"""
-        connection = dbControl.initialize_db_connection()
-        if connection:
-            cursor = connection.cursor()
-            try:
-                service = UserService(cursor)
-                user_data = service.get_user_and_data(user_id)
-                logger.info(f"User and related data for ID {user_id} fetched successfully.")
-                return user_data
-            except Exception as e:
-                logger.error(f"Error occurred while fetching user and data: {e}")
-            finally:
-                cursor.close()
-                dbControl.close_db_connection(connection)
+        # 필요한 필드만 추출
+        device_id = data.get("deviceId")
+
+        # 로그 출력으로 추출한 데이터 확인
+        logger.info(f"Saving data - Device ID: {device_id}")
+
+        # UserService를 통해 데이터 저장
+        try:
+            temp = self.crud.create_user(device_id)
+            if(temp == True) : 
+                self.crud.create_user_data(data)
+        except Exception as e:
+            logger.error(f"Failed to save data in user_data table: {e}")
+            raise

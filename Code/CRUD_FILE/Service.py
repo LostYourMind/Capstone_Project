@@ -1,28 +1,135 @@
-### Service.py
+import logging
+from typing import Any, Dict, Optional
+from datetime import datetime
 
-
-from CRUD_FILE.crud_Operation import CRUDOperations
+logger = logging.getLogger("UserService")
 
 class UserService:
-    def __init__(self, cursor):
-        self.crud = CRUDOperations(cursor)
+    def __init__(self, connection: Any):
+        self.connection = connection
+        self.cursor = self.connection.cursor()
 
-    def create_user_with_data(self, name, heart_rate, temp, humi, air_condition, led_value):
-        """사용자 생성과 동시에 사용자 데이터를 삽입"""
-        user_id = self.crud.create_user(name)
-        self.crud.create_user_data(user_id, heart_rate, temp, humi, air_condition, led_value)
-        return user_id
+    def check_user_exists(self, device_id: str) -> bool:
+        """device_id가 이미 users 테이블에 존재하는지 확인"""
+        sql = "SELECT user_id FROM users WHERE user_id = %s"
+        self.cursor.execute(sql, (device_id,))
+        result = self.cursor.fetchone()
+        return result is not None  # 존재하면 True, 없으면 False
 
-    def get_user_and_data(self, user_id):
-        """사용자 및 관련 데이터 조회"""
-        user_data = self.crud.read_user_data(user_id)
-        return user_data
+    def create_user(self, device_id: str) -> bool:
+        """Device ID와 timestamp를 users 테이블에 삽입 (이미 존재하면 삽입하지 않음)"""
+        if self.check_user_exists(device_id):
+            logger.info(f"Device ID {device_id} already exists in users table.")
+            return True  # 이미 존재하면 True 반환
 
-    def update_user_and_data(self, user_id, new_name, data_id, heart_rate, temp, humi, air_condition, led_value):
-        """사용자와 관련 데이터를 업데이트"""
-        self.crud.update_user_name(user_id, new_name)
-        self.crud.update_user_data(data_id, heart_rate, temp, humi, air_condition, led_value)
+        sql = """
+        INSERT INTO users(user_id, created_at)
+        VALUES (%s, %s)
+        """
+        values = (device_id, datetime.now())  # 현재 시간을 삽입
+        try:
+            self.cursor.execute(sql, values)
+            self.connection.commit()
+            logger.info(f"Device ID {device_id} and timestamp successfully inserted into users table.")
+            return False  # 새로 삽입되었으므로 False 반환
+        except Exception as e:
+            self.connection.rollback()
+            logger.error(f"Failed to insert data into users table: {e}")
+            raise
 
-    def delete_user_and_data(self, user_id):
-        """사용자와 관련 데이터를 삭제"""
-        self.crud.delete_user(user_id)
+    def create_user_data(self, data: Dict):
+        """user_data 테이블에 센서 데이터를 삽입"""
+        sql = """
+        INSERT INTO user_data (user_id, aver_heart_rate, Acetona, Alcohol, CO, CO2, NH4, Tolueno, 
+                               temp, humi, led_value, created_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        values = (
+            data.get("deviceId"),
+            data.get("heartRate"),
+            data.get("Acetona"),
+            data.get("Alcohol"),
+            data.get("CO"),
+            data.get("CO2"),
+            data.get("NH4"),
+            data.get("Tolueno"),
+            data.get("temperature"),
+            data.get("humidity"),
+            data.get("led_value"),
+            data.get("created_at", datetime.now())  # 기본값은 현재 시간
+        )
+        
+        if len(values) != 12:
+            raise ValueError("Not enough parameters for the SQL statement. Expected 12 values.")
+        
+        try:
+            self.cursor.execute(sql, values)
+            self.connection.commit()
+            logger.info("Sensor data successfully inserted into user_data table.")
+        except Exception as e:
+            self.connection.rollback()
+            logger.error(f"Failed to insert sensor data into user_data table: {e}")
+            raise
+
+    def read_user_data(self, data_id: int) -> Optional[Dict]:
+        """user_data 테이블에서 특정 데이터 조회"""
+        sql = "SELECT * FROM user_data WHERE data_id = %s"
+        try:
+            self.cursor.execute(sql, (data_id,))
+            result = self.cursor.fetchone()
+            if result:
+                logger.info(f"Data retrieved successfully for data_id: {data_id}")
+                return dict(result)  # 결과를 딕셔너리 형태로 반환
+            else:
+                logger.warning(f"No data found for data_id: {data_id}")
+                return None
+        except Exception as e:
+            logger.error(f"Failed to retrieve data for data_id: {data_id}: {e}")
+            raise
+
+    def update_user_data(self, device_id: str, data: Dict):
+        """user_data 테이블에서 특정 데이터 업데이트"""
+        sql = """
+        UPDATE user_data 
+        SET aver_heart_rate = %s, Acetona = %s, Alcohol = %s, CO = %s, CO2 = %s, NH4 = %s, Tolueno = %s,
+            temp = %s, humi = %s, led_value = %s, created_at = %s
+        WHERE user_id = %s
+        """
+        values = (
+            data.get("aver_heart_rate"),
+            data.get("Acetona"),
+            data.get("Alcohol"),
+            data.get("CO"),
+            data.get("CO2"),
+            data.get("NH4"),
+            data.get("Tolueno"),
+            data.get("temp"),
+            data.get("humi"),
+            data.get("led_value"),
+            datetime.now(),  # 수정 시간 갱신
+            device_id
+        )
+        
+        if len(values) != 12:
+            raise ValueError("Not enough parameters for the SQL statement. Expected 12 values.")
+        
+        try:
+            self.cursor.execute(sql, values)
+            self.connection.commit()
+            logger.info(f"Sensor data successfully updated for data_id: {device_id}")
+        except Exception as e:
+            self.connection.rollback()
+            logger.error(f"Failed to update sensor data for data_id: {device_id}: {e}")
+            raise
+
+    def delete_user_data(self, data_id: int):
+        """user_data 테이블에서 특정 데이터 삭제"""
+        sql = "DELETE FROM user_data WHERE data_id = %s"
+        try:
+            self.cursor.execute(sql, (data_id,))
+            self.connection.commit()
+            logger.info(f"Data successfully deleted for data_id: {data_id}")
+        except Exception as e:
+            self.connection.rollback()
+            logger.error(f"Failed to delete data for data_id: {data_id}: {e}")
+            raise
