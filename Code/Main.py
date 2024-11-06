@@ -1,6 +1,7 @@
 import logging
 import sys
 import os
+import pika
 import json
 import random
 import string
@@ -31,12 +32,13 @@ db_connection = None  # 전역 데이터베이스 연결
 db_con = None  # 전역 DBControl 인스턴스
 # endregion
 
-# 로깅 설정
+# 전체 로그 수준 설정
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.WARNING,  # 전체 로그를 WARNING 수준으로 설정
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S"
 )
+
 logger = logging.getLogger("ExceptionLogger")
 
 # CORS 설정
@@ -119,3 +121,26 @@ async def echo(request: Request):
         logging.error(f"Error reading request data: {e}")
         return {"error": "Failed to read request data"}
 # endregion
+
+
+
+# region Test Code(Message Queue)
+
+def send_to_queue(data):
+    """RabbitMQ 큐에 데이터를 전송하는 함수"""
+    connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+    channel = connection.channel()
+    channel.queue_declare(queue='sensor_data')
+    message = json.dumps(data)
+    channel.basic_publish(exchange='', routing_key='sensor_data', body=message)
+    connection.close()
+
+
+@app.post("/send-data")
+async def send_data_endpoint(data: dict):
+    # 받은 데이터를 RabbitMQ 큐로 전송
+    send_to_queue(data)
+    return {"status": "Data sent to RabbitMQ"}
+
+
+# endregion 
