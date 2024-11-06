@@ -1,3 +1,7 @@
+### Main.py
+
+# region Import 
+
 import logging
 import sys
 import os
@@ -18,11 +22,13 @@ sys.path.append("../")  # Add parent directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
-# region 사용자 지정 Class import
+
 from Control.Control import Control
 from Control.DBcontrol import dbControl
 from DataModel.DataModel import HeartRateData, HeartRateResponse, UserCreateResponse
 from Config import Loger  # 로그 설정 모듈 임포트
+from CRUD_FILE.UserDataFetcher import UserDataFetcher
+
 # endregion 
 
 # region Instance
@@ -31,6 +37,8 @@ con = Control()
 db_connection = None  # 전역 데이터베이스 연결
 db_con = None  # 전역 DBControl 인스턴스
 # endregion
+
+# region 서버 설정 및 사용자 지정 메서드
 
 # 전체 로그 수준 설정
 logging.basicConfig(
@@ -49,6 +57,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+def send_to_queue(data):
+    """RabbitMQ 큐에 데이터를 전송하는 함수"""
+    connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+    channel = connection.channel()
+    channel.queue_declare(queue='sensor_data')
+    message = json.dumps(data)
+    channel.basic_publish(exchange='', routing_key='sensor_data', body=message)
+    connection.close()
+
+# endregion 
+
+#region 서버 시작 & 종료 연결 설정
 
 @app.on_event("startup")
 async def startup():
@@ -76,21 +97,13 @@ async def root():
     logger.info("Someone is connecting to the root page.")
     return JSONResponse(content={"message": "API is Working"}, status_code=200)
 
-# Android에서 보내는 데이터 받는 EndPoint
-@app.post("/heart-rate")
-async def heart_rate(data: HeartRateData):
-    # 로그에 데이터 각 필드를 출력
-    logging.info("Start data received and processed in /heart-rate endpoint.")
-    
-    # 전역 db_con 인스턴스를 사용하여 데이터 저장
-    try:
-        result = db_con.save_data(data.dict())  # 데이터 저장
-        logging.info("Data saved successfully in /heart-rate endpoint.")
-        return result
-    
-    except Exception as e:
-        logging.error(f"An error occurred in /heart-rate endpoint: {e}")
-        return {"status": "Failed to process and save data", "error": str(e)}
+
+# endregion 
+
+#region EndPoint
+
+
+
 
 # 날씨 정보 호출
 @app.get("/WeatherCall")
@@ -107,8 +120,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         return {"error": "Invalid input for heart rate"}
     return await app.default_exception_handler(request, exc)
 
-# region 디버깅 전용 ECHO 코드
-@app.post("/echo")
+
+@app.post("/echo") # 디버깅용 Echo
 async def echo(request: Request):
     logging.info("Call Echo")
     try:
@@ -124,23 +137,24 @@ async def echo(request: Request):
 
 
 
-# region Test Code(Message Queue)
+# Android에서 보내는 데이터 받는 EndPoint
+@app.post("/heart-rate")
+async def heart_rate(data: dict):
 
-def send_to_queue(data):
-    """RabbitMQ 큐에 데이터를 전송하는 함수"""
-    connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
-    channel = connection.channel()
-    channel.queue_declare(queue='sensor_data')
-    message = json.dumps(data)
-    channel.basic_publish(exchange='', routing_key='sensor_data', body=message)
-    connection.close()
-
-
-@app.post("/send-data")
-async def send_data_endpoint(data: dict):
     # 받은 데이터를 RabbitMQ 큐로 전송
     send_to_queue(data)
+    
+    # 1. ID 값 추출
+    heartrate = data.get("heartRate")
+    temp = con.YT_CALL_RECOMM_MUSIC(heartrate)
+
+    # 3. 추출된 BPM 값을 이용해서 예측 HRV 값 측정
+    # 4. 해당 값을 이용해서 Model로 감정 판별
+    # 5. 판별된 감정을 이용한 음악 추천 URL 흭득
+    # 6. 흭득한 URL return 
+
+
+
+
+    
     return {"status": "Data sent to RabbitMQ"}
-
-
-# endregion 
