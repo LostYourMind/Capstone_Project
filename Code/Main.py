@@ -27,7 +27,6 @@ from Control.Control import Control
 from Control.DBcontrol import dbControl
 from DataModel.DataModel import HeartRateData, HeartRateResponse, UserCreateResponse
 from Config import Loger  # 로그 설정 모듈 임포트
-from CRUD_FILE.UserDataFetcher import UserDataFetcher
 
 # endregion 
 
@@ -38,7 +37,7 @@ db_connection = None  # 전역 데이터베이스 연결
 db_con = None  # 전역 DBControl 인스턴스
 # endregion
 
-# region 서버 설정 및 사용자 지정 메서드
+# region 서버 설정 및 사용자 지정 메서드 & 로깅 설정
 
 # 전체 로그 수준 설정
 logging.basicConfig(
@@ -46,6 +45,11 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S"
 )
+
+# 특정 모듈의 로깅 수준 설정
+logging.getLogger("pika").setLevel(logging.WARNING)  # pika 모듈의 로그를 WARNING 이상만 출력
+logging.getLogger("pika.adapters.utils.connection_workflow").setLevel(logging.ERROR)  # 연결 로그는 ERROR 수준으로 제한
+logging.getLogger("pika.channel").setLevel(logging.ERROR)  # 채널 로그도 ERROR만 표시
 
 logger = logging.getLogger("ExceptionLogger")
 
@@ -89,7 +93,7 @@ async def shutdown():
     """서버 종료 시 데이터베이스 연결 종료"""
     global db_connection
     if db_connection:
-        DBControl.close_db_connection(db_connection)
+        dbControl.close_db_connection(db_connection)
         logging.info("Database connection closed on shutdown.")
 
 @app.get("/", status_code=200)
@@ -111,6 +115,8 @@ async def WeatherCall():
     logger.info("Call Weather EndPoint")
     weather_Result, airCondition_Result = con.Weather_API_CALL()
     return weather_Result, airCondition_Result
+
+
 
 # RequestValidationError 전역 예외 처리기
 @app.exception_handler(RequestValidationError)
@@ -144,17 +150,13 @@ async def heart_rate(data: dict):
     # 받은 데이터를 RabbitMQ 큐로 전송
     send_to_queue(data)
     
-    # 1. ID 값 추출
-    heartrate = data.get("heartRate")
-    temp = con.YT_CALL_RECOMM_MUSIC(heartrate)
+    deviceId = data.get("deviceId")
+    result = db_con.Find_heart_rate(deviceId)
+    temp = Control.start_scheduled_tasks(result)
+    logging.info(f"temp(HRV) : {temp}")
 
-    # 3. 추출된 BPM 값을 이용해서 예측 HRV 값 측정
     # 4. 해당 값을 이용해서 Model로 감정 판별
     # 5. 판별된 감정을 이용한 음악 추천 URL 흭득
     # 6. 흭득한 URL return 
-
-
-
-
     
     return {"status": "Data sent to RabbitMQ"}

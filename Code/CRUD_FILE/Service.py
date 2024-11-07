@@ -1,6 +1,7 @@
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from datetime import datetime
+import schedule
 
 logger = logging.getLogger("UserService")
 
@@ -70,20 +71,29 @@ class UserService:
             logger.error(f"Failed to insert sensor data into user_data table: {e}")
             raise
 
-    def read_user_data(self, data_id: int) -> Optional[Dict]:
-        """user_data 테이블에서 특정 데이터 조회"""
-        sql = "SELECT * FROM user_data WHERE data_id = %s"
+    def get_bpm_values_by_device_id(self, device_id: str) -> List[float]:
+        """
+        특정 device_id에 해당하는 BPM 데이터를 user_data 테이블에서 조회하여 반환
+        """
+        sql = """
+        SELECT aver_heart_rate 
+        FROM user_data 
+        WHERE user_id = %s
+        ORDER BY created_at DESC
+        """
         try:
-            self.cursor.execute(sql, (data_id,))
-            result = self.cursor.fetchone()
-            if result:
-                logger.info(f"Data retrieved successfully for data_id: {data_id}")
-                return dict(result)  # 결과를 딕셔너리 형태로 반환
-            else:
-                logger.warning(f"No data found for data_id: {data_id}")
-                return None
+            logger.info(f"Executing SQL Query: {sql} with device_id={device_id}")
+            self.cursor.execute(sql, (device_id,))
+            results = self.cursor.fetchall()
+            #logger.info(f"Query Results: {results}")
+
+            # 튜플 리스트에서 값만 추출하여 리스트로 반환
+            bpm_values = [float(row[0]) for row in results]
+            #logger.info(f"Extracted BPM Values: {bpm_values}")
+            return bpm_values
+
         except Exception as e:
-            logger.error(f"Failed to retrieve data for data_id: {data_id}: {e}")
+            logger.error(f"Failed to retrieve BPM values for device_id {device_id}: {e}")
             raise
 
     def delete_user_data(self, data_id: int):
