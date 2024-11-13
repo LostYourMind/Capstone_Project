@@ -35,7 +35,6 @@ class dbControl:
     
     def Find_heart_rate(self, deviceId:str) :
         result = self.crud.get_bpm_values_by_device_id(deviceId)
-        #logging.info(f"Find_heart_rate data : {result}")
         return result
 
 

@@ -2,21 +2,20 @@
 
 # region Import 
 
+import asyncio
 import logging
 import sys
 import os
 import pika
 import json
-import random
-import string
+
+from collections import defaultdict
 from typing import List, Dict, Optional
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
 from fastapi import FastAPI, HTTPException, Depends, Request, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
-from uuid import uuid4
-from datetime import datetime
+from fastapi.responses import JSONResponse, PlainTextResponse
 
 sys.path.append("../")  # Add parent directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -28,13 +27,18 @@ from Control.DBcontrol import dbControl
 from DataModel.DataModel import HeartRateData, HeartRateResponse, UserCreateResponse
 from Config import Loger  # 로그 설정 모듈 임포트
 
+
 # endregion 
 
-# region Instance
+# region 맴버 필드
+
 app = FastAPI()
 con = Control()
 db_connection = None  # 전역 데이터베이스 연결
 db_con = None  # 전역 DBControl 인스턴스
+
+call_counts = defaultdict(int)  # 디바이스 별 호출 횟수를 저장할 딕셔너리
+
 # endregion
 
 # region 서버 설정 및 사용자 지정 메서드 & 로깅 설정
@@ -106,9 +110,6 @@ async def root():
 
 #region EndPoint
 
-
-
-
 # 날씨 정보 호출
 @app.get("/WeatherCall")
 async def WeatherCall():
@@ -127,14 +128,14 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     return await app.default_exception_handler(request, exc)
 
 
-@app.post("/echo") # 디버깅용 Echo
+@app.get("/echo") # 디버깅용 Echo
 async def echo(request: Request):
     logging.info("Call Echo")
     try:
         data = await request.body()  # 원본 요청 데이터 (바이트)
         data_str = data.decode("utf-8")  # UTF-8로 디코딩하여 문자열로 변환
         logging.info(f"Received data: {data_str}")
-        return {"received_data": data_str}
+        return {"videoUrl": "https://youtu.be/eKSmEPAEr2U?si=ft4l_eftfXJ7pIc3"}
     
     except Exception as e:
         logging.error(f"Error reading request data: {e}")
@@ -152,11 +153,12 @@ async def heart_rate(data: dict):
     
     deviceId = data.get("deviceId")
     result = db_con.Find_heart_rate(deviceId)
-    temp = Control.start_scheduled_tasks(result)
-    logging.info(f"temp(HRV) : {temp}")
+    logging.info(f"logging data(result) : {result}")
+    temp = con.YT_CALL_RECOMM_MUSIC(result)
 
-    # 4. 해당 값을 이용해서 Model로 감정 판별
-    # 5. 판별된 감정을 이용한 음악 추천 URL 흭득
-    # 6. 흭득한 URL return 
+    # 호출 횟수 증가
+    call_counts[deviceId] += 1
+    logging.info(f"call Counts = {call_counts[deviceId]}")
+    
     
     return {"status": "Data sent to RabbitMQ"}

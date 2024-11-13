@@ -13,7 +13,7 @@ from Control.DBcontrol import dbControl
 
 
 buffer = []  # 메시지를 저장할 버퍼
-BATCH_SIZE = 10  # 버퍼에 쌓을 메시지 개수
+BATCH_SIZE = 5  # 버퍼에 쌓을 메시지 개수
 
 def process_message(ch, method, properties, body):
     """RabbitMQ 큐에서 받은 메시지를 처리하고 일정 개수 이상 쌓이면 데이터베이스에 저장하는 함수"""

@@ -1,5 +1,6 @@
 import requests
 import time
+import isodate
 
 YOUTUBE_API_KEY = "AIzaSyBcSKTR5Ls4U4cVp5ji_ZEjxXTL-_DBt2E"
 BASE_YOUTUBE_URL = "https://www.youtube.com/watch?v="
@@ -17,10 +18,12 @@ EMOTION_QUERIES = {
     "A": "adventure music",
 }
 
+
 class YouTubeMusicRecommender:
     def __init__(self):
-        # 각 감정에 대한 마지막 호출 시간을 추적하는 딕셔너리
+        # 각 감정에 대한 마지막 호출 시간과 기다려야 할 시간(초)을 추적하는 딕셔너리
         self.last_called = {emotion: 0 for emotion in EMOTION_QUERIES}
+        self.wait_time = {emotion: 10 for emotion in EMOTION_QUERIES}  # 기본 대기 시간 10초로 설정
 
     def get_youtube_video(self, query: str) -> str:
         """YouTube API로 검색하여 첫 번째 동영상의 URL과 ID 반환."""
@@ -57,22 +60,32 @@ class YouTubeMusicRecommender:
         except requests.RequestException as e:
             return f"Error fetching duration: {e}"
 
+    def parse_iso8601_duration(self, duration_str: str) -> int:
+        """ISO 8601 형식의 기간을 초 단위로 변환하여 반환"""
+        duration = isodate.parse_duration(duration_str)
+        return int(duration.total_seconds())  # 초 단위로 반환
+
     def recommend_music(self, emotion: str) -> str:
-        """감정 상태에 맞는 추천 음악 URL과 길이 반환 (10초마다 호출 가능)."""
+        """감정 상태에 맞는 추천 음악 URL과 길이 반환 (동영상 길이만큼 대기 후 호출 가능)."""
         current_time = time.time()  # 현재 시간을 초 단위로 가져옴
         last_time = self.last_called.get(emotion, 0)
         
-        # 마지막 호출 이후 10초가 지나지 않았으면 호출 제한
-        if current_time - last_time < 10:
-            return f"Wait before requesting more music for emotion '{emotion}'."
+        # 마지막 호출 이후 이전 동영상 길이(초)만큼 지나지 않았으면 호출 제한
+        if current_time - last_time < self.wait_time[emotion]:
+            remaining_time = int(self.wait_time[emotion] - (current_time - last_time))
+            return f"Wait {remaining_time} seconds before requesting more music for emotion '{emotion}'."
 
-        # 10초가 지난 경우, 새로운 추천 URL 생성
+        # 새로운 추천 URL 생성
         query = EMOTION_QUERIES.get(emotion, "music")  # 기본 검색어는 "music"
         video_url, video_id = self.get_youtube_video(query)
 
         if video_id:  # video_id가 유효한 경우에만 동영상 길이 조회
             video_duration = self.get_video_duration(video_id)
+            video_duration_seconds = self.parse_iso8601_duration(video_duration)
+            
+            # 동영상 길이를 다음 호출 대기 시간으로 설정
+            self.wait_time[emotion] = video_duration_seconds
             self.last_called[emotion] = current_time
-            return f"Recommended Video: {video_url}\nDuration: {video_duration}"
+            return f"Recommended Video: {video_url}\nDuration: {video_duration} ({video_duration_seconds} seconds)"
         else:
             return video_url

@@ -82,7 +82,7 @@ class UserService:
         ORDER BY created_at DESC
         """
         try:
-            logger.info(f"Executing SQL Query: {sql} with device_id={device_id}")
+            #logger.info(f"Executing SQL Query: {sql} with device_id={device_id}")
             self.cursor.execute(sql, (device_id,))
             results = self.cursor.fetchall()
             #logger.info(f"Query Results: {results}")
