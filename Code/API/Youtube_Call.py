@@ -2,7 +2,8 @@ import requests
 import time
 import isodate
 
-YOUTUBE_API_KEY = "AIzaSyBcSKTR5Ls4U4cVp5ji_ZEjxXTL-_DBt2E"
+#YOUTUBE_API_KEY =  "AIzaSyBcSKTR5Ls4U4cVp5ji_ZEjxXTL-_DBt2E"
+YOUTUBE_API_KEY = "AIzaSyCJzEMdNlQK7ljor4zBJBuENP6IxGPSrwE"
 BASE_YOUTUBE_URL = "https://www.youtube.com/watch?v="
 
 # 감정 상태와 검색어 쿼리를 딕셔너리로 정의
@@ -85,7 +86,9 @@ class YouTubeMusicRecommender:
             
             # 동영상 길이를 다음 호출 대기 시간으로 설정
             self.wait_time[emotion] = video_duration_seconds
-            self.last_called[emotion] = current_time
-            return f"Recommended Video: {video_url}\nDuration: {video_duration} ({video_duration_seconds} seconds)"
+            #self.last_called[emotion] = current_time
+            self.last_called[emotion] = 1
+
+            return video_url
         else:
             return video_url

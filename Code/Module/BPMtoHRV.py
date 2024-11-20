@@ -27,9 +27,9 @@ def calculate_rmssd(ibi_values):
     return np.sqrt(mean_squared_diff)
 
 def calculate_pnn50(ibi_values):
-    successive_diffs = np.abs(np.diff(ibi_values))
-    count_above_50 = np.sum(successive_diffs > 50)
-    return (count_above_50 / (len(ibi_values) - 1)) * 100
+    successive_diffs = np.abs(np.diff(ibi_values))  # 연속된 IBI 차이 계산
+    count_above_50 = np.sum(successive_diffs > 0.05)  # 초 단위에서 0.05 이상 차이
+    return (count_above_50 / len(successive_diffs)) * 100
 
 def calculate_frequency_domain_features(ibi_values):
     ibi_values = np.array(ibi_values) / 1000.0

@@ -38,6 +38,7 @@ db_connection = None  # 전역 데이터베이스 연결
 db_con = None  # 전역 DBControl 인스턴스
 
 call_counts = defaultdict(int)  # 디바이스 별 호출 횟수를 저장할 딕셔너리
+device_ID_Contain = []
 
 # endregion
 
@@ -128,20 +129,49 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     return await app.default_exception_handler(request, exc)
 
 
-@app.get("/echo") # 디버깅용 Echo
-async def echo(request: Request):
-    logging.info("Call Echo")
-    try:
-        data = await request.body()  # 원본 요청 데이터 (바이트)
-        data_str = data.decode("utf-8")  # UTF-8로 디코딩하여 문자열로 변환
-        logging.info(f"Received data: {data_str}")
-        return {"videoUrl": "https://youtu.be/eKSmEPAEr2U?si=ft4l_eftfXJ7pIc3"}
-    
-    except Exception as e:
-        logging.error(f"Error reading request data: {e}")
-        return {"error": "Failed to read request data"}
-# endregion
 
+# # Android에서 보내는 데이터 받는 EndPoint
+# @app.post("/heart-rate")
+# async def heart_rate(data: dict):
+
+#     # 받은 데이터를 RabbitMQ 큐로 전송
+#     send_to_queue(data)
+    
+#     deviceId = data.get("deviceId")
+#     result = db_con.Find_heart_rate(deviceId)
+
+#     temp = con.YT_CALL_RECOMM_MUSIC(result)
+
+#     # 호출 횟수 증가
+#     call_counts[deviceId] += 1
+#     logging.info(f"call Counts = {call_counts[deviceId]}")
+
+#     temp_data = {
+#                 "url" : temp
+#             }
+    
+#     return temp_data
+    
+    #return {"status": "Data sent to RabbitMQ"}
+
+# @app.post("/echo") # 디버깅용 Echo
+# async def echo(request: Request):
+
+#     logging.info("Call Echo")
+#     try:
+#         data = await request.body()  # 원본 요청 데이터 (바이트)
+#         data_str = data.decode("utf-8")  # UTF-8로 디코딩하여 문자열로 변환
+#         logging.info(f"Received data: {data_str}")
+#         return {"url": "https://www.youtube.com/watch?v=Y8YCGVDCpNY"}
+    
+#     except Exception as e:
+#         logging.error(f"Error reading request data: {e}")
+#         return {"error": "Failed to read request data"}
+
+
+
+
+# endregion
 
 
 # Android에서 보내는 데이터 받는 EndPoint
@@ -153,12 +183,44 @@ async def heart_rate(data: dict):
     
     deviceId = data.get("deviceId")
     result = db_con.Find_heart_rate(deviceId)
-    logging.info(f"logging data(result) : {result}")
+
     temp = con.YT_CALL_RECOMM_MUSIC(result)
 
     # 호출 횟수 증가
     call_counts[deviceId] += 1
     logging.info(f"call Counts = {call_counts[deviceId]}")
+
+    temp_data = {
+                "url" : temp
+            }
     
+    logger.info(f"temp_data = {temp_data}")
+    return temp_data
     
-    return {"status": "Data sent to RabbitMQ"}
+
+
+@app.get("/echo") # 디버깅용 Echo
+async def echo():
+    logging.info("Echo Call")
+    if device_ID_Contain:
+            latest_device_id = device_ID_Contain[-1]
+            deviceId = latest_device_id
+            logging.info(f"device ID : {deviceId} \nlastest_deviceId : {latest_device_id}")
+    else:
+            return {"status": "No device IDs available"}
+
+    result = db_con.Find_heart_rate(deviceId)
+
+    temp = con.YT_CALL_RECOMM_MUSIC(result)
+
+    # 호출 횟수 증가
+    call_counts[deviceId] += 1
+    logging.info(f"call Counts = {call_counts[deviceId]}")
+
+    return {"url" : temp} 
+
+    
+
+
+
+    
