@@ -2,8 +2,6 @@ import requests
 import time
 import isodate
 
-#YOUTUBE_API_KEY =  "AIzaSyBcSKTR5Ls4U4cVp5ji_ZEjxXTL-_DBt2E"
-YOUTUBE_API_KEY = "AIzaSyCJzEMdNlQK7ljor4zBJBuENP6IxGPSrwE"
 BASE_YOUTUBE_URL = "https://www.youtube.com/watch?v="
 
 # 감정 상태와 검색어 쿼리를 딕셔너리로 정의
