@@ -17,7 +17,7 @@ EMOTION_QUERIES = {
 
 class USE_GPT:
     # api_key = os.environ.get("OPENAI_API_KEY")
-    api_key = "sk-proj-"
+    api_key = ""
 
     openai.api_key = api_key
 
